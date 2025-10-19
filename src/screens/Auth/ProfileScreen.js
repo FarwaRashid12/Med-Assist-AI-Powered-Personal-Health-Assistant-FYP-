@@ -1,20 +1,19 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { signOut } from "firebase/auth";
-import { auth } from "../../../context/firebaseConfig";
+import { auth } from "../../context/firebaseConfig"; // ✅ corrected path
 
 export default function ProfileScreen({ navigation }) {
   const user = auth.currentUser;
 
   const handleLogout = async () => {
     await signOut(auth);
-    navigation.replace("Login");
   };
 
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../../assets/images/profile_user.png")}
+        source={require("../../assets/images/profile_user.png")} // ✅ corrected path
         style={styles.avatar}
       />
       <Text style={styles.name}>{user?.displayName || "Patient"}</Text>
