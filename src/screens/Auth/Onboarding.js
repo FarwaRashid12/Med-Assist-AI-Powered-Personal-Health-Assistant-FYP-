@@ -5,7 +5,7 @@ export default function Onboarding({ navigation }) {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../../assets/images/onboard_health.png")}
+        source={require("../../assets/images/onboard_health.png")} // ✅ fixed path
         style={styles.image}
       />
       <Text style={styles.title}>Welcome to Med-Assist</Text>
@@ -16,7 +16,8 @@ export default function Onboarding({ navigation }) {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.replace("Login")}
+      onPress={() => navigation.replace("Login")}
+
       >
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>

@@ -10,7 +10,7 @@ export default function SplashScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../../assets/icons/medassist_logo.jpg")}
+        source={require("../../assets/icons/medassist_logo.png")} // ✅ Corrected path
         style={styles.logo}
       />
       <Text style={styles.text}>Med-Assist</Text>

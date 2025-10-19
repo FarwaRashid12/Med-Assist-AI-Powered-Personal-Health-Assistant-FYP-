@@ -1,27 +1,44 @@
 import React, { useState } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, Alert,
-  StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, Image, ScrollView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Image,
+  ScrollView,
 } from "react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../../context/firebaseConfig";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "../../context/firebaseConfig"; // ✅ Corrected path
 
-export default function LoginScreen({ navigation }) {
+export default function SignupScreen({ navigation }) {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password.");
+  const handleRegister = async () => {
+    if (!username || !email || !password) {
+      Alert.alert("Error", "Please fill all fields.");
       return;
     }
+    if (password.length < 6) {
+      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigation.replace("Profile");
+      await createUserWithEmailAndPassword(auth, email.trim(), password);
+await updateProfile(auth.currentUser, { displayName: username.trim() });
+// No manual navigation
+
     } catch (err) {
-      Alert.alert("Login Failed", err.message);
+      Alert.alert("Registration Failed", err.message);
     } finally {
       setLoading(false);
     }
@@ -33,9 +50,18 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Image source={require("../../../assets/icons/medassist_logo.png")} style={styles.logo} />
-        <Text style={styles.title}>Welcome Back</Text>
+        <Image
+          source={require("../../assets/icons/medassist_logo.png")} // ✅ Corrected path
+          style={styles.logo}
+        />
+        <Text style={styles.title}>Create Account</Text>
 
+        <TextInput
+          placeholder="Full Name"
+          style={styles.input}
+          value={username}
+          onChangeText={setUsername}
+        />
         <TextInput
           placeholder="Email"
           keyboardType="email-address"
@@ -54,13 +80,13 @@ export default function LoginScreen({ navigation }) {
         {loading ? (
           <ActivityIndicator size="large" color="#00B4D8" />
         ) : (
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
+          <TouchableOpacity style={styles.button} onPress={handleRegister}>
+            <Text style={styles.buttonText}>Sign Up</Text>
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-          <Text style={styles.link}>Don’t have an account? Sign Up</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={styles.link}>Already have an account? Login</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
