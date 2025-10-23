@@ -11,6 +11,7 @@ import OnboardingScreen from "./src/screens/Auth/Onboarding";
 import LoginScreen from "./src/screens/Auth/LoginScreen";
 import SignupScreen from "./src/screens/Auth/SignupScreen";
 import ProfileScreen from "./src/screens/Auth/ProfileScreen";
+import ForgetPasswordScreen from "./src/screens/Auth/ForgetPasswordScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -46,6 +47,7 @@ export default function App() {
     <Stack.Screen name="Onboarding" component={OnboardingScreen} />
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Signup" component={SignupScreen} />
+    <Stack.Screen name="ForgetPasswordScreen" component={ForgetPasswordScreen} />
   </>
 ) : (
   <Stack.Screen name="Profile" component={ProfileScreen} />
