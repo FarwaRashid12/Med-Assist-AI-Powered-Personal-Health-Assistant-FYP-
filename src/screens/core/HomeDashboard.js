@@ -12,10 +12,10 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { LineChart } from "react-native-gifted-charts";
 import colors from "../../constants/colors";
+import Svg, { Path } from "react-native-svg"
 
 let CircularProgress;
 try {
-  // Safe dynamic import — prevents crash if not found
   CircularProgress = require("react-native-gifted-charts").CircularProgress;
 } catch (e) {
   CircularProgress = undefined;
@@ -54,12 +54,22 @@ export default function HomeDashboard({ navigation, route }) {
     week.findIndex((d) => d.isToday) ?? 0
   );
 
+  // Mock data
   const nextReminder = { time: "11:00 AM", title: "Vitamin D", dose: "1 tab" };
   const medsWeek = { taken: 4, total: 7 };
   const vitals = { bp: "118/76", sugar: "104 mg/dL", pulse: "74 bpm" };
 
-  const heartRateData = [70, 74, 71, 76, 72, 75, 73, 77, 72];
-  const lineData = heartRateData.map((v) => ({ value: v }));
+  // Heart rate data (like daily BPM)
+  const heartRateData = [
+    { value: 72, label: "16" },
+    { value: 68, label: "17" },
+    { value: 74, label: "18" },
+    { value: 70, label: "19" },
+    { value: 76, label: "20" },
+    { value: 80, label: "21" },
+    { value: 66, label: "22" },
+  ];
+  const goal = 75; // average healthy bpm goal
 
   return (
     <ScrollView
@@ -194,7 +204,7 @@ export default function HomeDashboard({ navigation, route }) {
         </View>
 
         <View style={styles.progressContent}>
-          {/* BP Gauge or Fallback */}
+          {/* BP Circular Gauge */}
           <View style={styles.gaugeContainer}>
             {CircularProgress ? (
               <CircularProgress
@@ -204,8 +214,9 @@ export default function HomeDashboard({ navigation, route }) {
                 progressColor={colors.primary}
                 title="BP"
                 titleColor={colors.textDark}
-                activeStrokeWidth={12}
-                inActiveStrokeWidth={12}
+                activeStrokeWidth={10}
+                inActiveStrokeWidth={10}
+                showProgressValue={false}
               />
             ) : (
               <View style={styles.fallbackGauge}>
@@ -213,24 +224,26 @@ export default function HomeDashboard({ navigation, route }) {
                 <Text style={styles.fallbackValue}>{vitals.bp}</Text>
               </View>
             )}
+            <Text style={styles.bpValue}>{vitals.bp}</Text>
           </View>
 
-          {/* Heart Rate Line Chart */}
-          <View style={styles.chartContainer}>
-            <LineChart
-              data={lineData}
-              thickness={3}
-              color={colors.primary}
-              curved
-              hideDataPoints
-              height={100}
-              areaChart
-              startFillColor={"rgba(93,174,255,0.3)"}
-              endFillColor={"rgba(93,174,255,0.05)"}
-            />
-            <Text style={styles.chartLabel}>Heart Rate</Text>
-            <Text style={styles.chartValue}>{vitals.pulse}</Text>
-          </View>
+          {/* Heart Rate Simple Card */}
+<View style={styles.heartCard}>
+  <Text style={styles.heartTitle}>Heart</Text>
+  <View style={styles.heartIconContainer}>
+  <MaterialCommunityIcons name="heart-outline" size={80} color="#FF6B81" />
+  <Svg height="25" width="70" style={styles.ecgWave}>
+    <Path
+      d="M0 15 Q10 5 20 15 T40 15 T60 15"
+      stroke="#00ADEF"
+      strokeWidth="2.5"
+      fill="none"
+    />
+  </Svg>
+</View>
+  <Text style={styles.heartValue}>105</Text>
+  <Text style={styles.heartUnit}>bpm</Text>
+</View>
         </View>
       </View>
     </ScrollView>
@@ -247,40 +260,190 @@ function SummaryCard({ title, subtitle, icon }) {
   );
 }
 
-const { height } = Dimensions.get("window");
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 18, paddingTop: 14 },
-  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+  },
+ headerRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginTop: 30, // ⬅ was 16 before, increase it a bit
+  marginBottom: 8,
+},
   smallGreeting: { color: colors.textLight, fontSize: 14 },
   username: { color: colors.textDark, fontSize: 22, fontWeight: "800" },
-  bellWrap: { width: 38, height: 38, borderRadius: 20, backgroundColor: "#E7F4FF", alignItems: "center", justifyContent: "center" },
-  redDot: { position: "absolute", top: 6, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF3B30" },
+  bellWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 20,
+    backgroundColor: "#E7F4FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  redDot: {
+    position: "absolute",
+    top: 6,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#FF3B30",
+  },
   bigCard: { borderRadius: 20, padding: 16, marginTop: 10 },
-  bigCardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  bigCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   bigCardTime: { fontSize: 16, fontWeight: "700", color: "#0b4e78" },
   bigCardSub: { marginTop: 4, color: "#0b4e78" },
-  addGoal: { backgroundColor: "#ffffffcc", color: "#0b4e78", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, fontWeight: "700" },
-  dayPill: { width: 50, borderRadius: 16, alignItems: "center", paddingVertical: 10 },
+  addGoal: {
+    backgroundColor: "#ffffffcc",
+    color: "#0b4e78",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    fontWeight: "700",
+  },
+  dayPill: {
+    width: 50,
+    borderRadius: 16,
+    alignItems: "center",
+    paddingVertical: 10,
+  },
   dayPillActive: { backgroundColor: colors.primary },
   dayPillInactive: { backgroundColor: "#fff" },
   dayNum: { fontSize: 18, fontWeight: "800", color: colors.textDark },
   dayName: { fontSize: 11, color: colors.textLight },
-  row: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
-  card: { width: (width - 48) / 2, backgroundColor: "#fff", borderRadius: 16, padding: 14, elevation: 2 },
-  cardIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: "#EAF6FF", alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
+  card: {
+    width: (width - 48) / 2,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    elevation: 2,
+  },
+  cardIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#EAF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
   cardTitle: { fontSize: 14, fontWeight: "800", color: colors.textDark },
   cardSub: { fontSize: 12, color: colors.textLight },
-  progressCard: { backgroundColor: "#fff", borderRadius: 16, marginTop: 22, padding: 18, elevation: 3 },
-  progressHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  progressCard: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    marginTop: 22,
+    padding: 18,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
   progressTitle: { fontSize: 18, fontWeight: "700", color: colors.textDark },
   viewAll: { fontSize: 13, color: colors.primary },
-  progressContent: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  progressContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
   gaugeContainer: { alignItems: "center", width: "45%" },
-  fallbackGauge: { borderWidth: 4, borderColor: colors.primary, borderRadius: 50, width: 90, height: 90, alignItems: "center", justifyContent: "center" },
+  fallbackGauge: {
+    borderWidth: 4,
+    borderColor: colors.primary,
+    borderRadius: 50,
+    width: 90,
+    height: 90,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   fallbackText: { color: colors.textLight, fontSize: 14 },
   fallbackValue: { fontSize: 18, fontWeight: "700", color: colors.textDark },
-  chartContainer: { width: "50%", alignItems: "center" },
-  chartLabel: { fontSize: 14, color: colors.textLight, marginTop: 4 },
-  chartValue: { fontSize: 18, fontWeight: "700", color: colors.textDark, marginTop: 2 },
+  bpValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.textDark,
+    marginTop: 4,
+  },
+  chartWrapper: {
+    width: "50%",
+    alignItems: "center",
+  },
+  heartCard: {
+  width: "50%",
+  backgroundColor: "#fff",
+  borderRadius: 16,
+  paddingVertical: 16,
+  alignItems: "center",
+  justifyContent: "center",
+  elevation: 2,
+  shadowColor: "#000",
+  shadowOpacity: 0.08,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 4,
+},
+heartTitle: {
+  fontSize: 15,
+  fontWeight: "700",
+  color: colors.textDark,
+  marginBottom: 6,
+},
+heartIconContainer: {
+  position: "relative",
+  justifyContent: "center",
+  alignItems: "center",
+},
+ecgLineContainer: {
+  position: "absolute",
+  bottom: 38,
+  width: 60,
+  height: 20,
+  overflow: "hidden",
+  justifyContent: "center",
+  alignItems: "center",
+},
+ecgLine: {
+  width: 100,
+  height: 2,
+  backgroundColor: "#00ADEF",
+  borderRadius: 2,
+},
+heartValue: {
+  fontSize: 22,
+  fontWeight: "800",
+  color: "#00ADEF",
+  marginTop: 6,
+},
+heartUnit: {
+  fontSize: 12,
+  color: colors.textLight,
+  marginTop: -2,
+},
+ecgWave: {
+  position: "absolute",
+  bottom: 30, // Try between 28–32 depending on your heart icon’s size
+  left: 5,
+},
+  chartLabel: { fontSize: 14, color: colors.textLight, marginTop: 6 },
+  chartValue: { fontSize: 18, fontWeight: "700", color: colors.textDark },
 });
