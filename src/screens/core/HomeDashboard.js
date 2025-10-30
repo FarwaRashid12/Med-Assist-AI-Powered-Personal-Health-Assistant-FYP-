@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+// HomeDashboard.js - Complete updated file
+import React, { useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,13 +7,16 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
-  ScrollView,
+  Animated,
+  Easing,
+  Alert,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Ionicons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { LineChart } from "react-native-gifted-charts";
 import colors from "../../constants/colors";
-import Svg, { Path } from "react-native-svg"
 
 let CircularProgress;
 try {
@@ -23,12 +27,16 @@ try {
 
 const { width } = Dimensions.get("window");
 
+// ──────────────────────────────────────────────────────────────
+// Helper – current week
+// ──────────────────────────────────────────────────────────────
 const getCurrentWeek = () => {
   const today = new Date();
   const dayOfWeek = today.getDay();
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const monday = new Date(today);
   monday.setDate(today.getDate() + mondayOffset);
+
   const days = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
@@ -47,6 +55,9 @@ const getCurrentWeek = () => {
   return days;
 };
 
+// ──────────────────────────────────────────────────────────────
+// Main Component
+// ──────────────────────────────────────────────────────────────
 export default function HomeDashboard({ navigation, route }) {
   const username = route?.params?.name || "Aashifa Sheikh";
   const week = useMemo(() => getCurrentWeek(), []);
@@ -54,396 +65,405 @@ export default function HomeDashboard({ navigation, route }) {
     week.findIndex((d) => d.isToday) ?? 0
   );
 
-  // Mock data
   const nextReminder = { time: "11:00 AM", title: "Vitamin D", dose: "1 tab" };
   const medsWeek = { taken: 4, total: 7 };
   const vitals = { bp: "118/76", sugar: "104 mg/dL", pulse: "74 bpm" };
 
-  // Heart rate data (like daily BPM)
-  const heartRateData = [
-    { value: 72, label: "16" },
-    { value: 68, label: "17" },
-    { value: 74, label: "18" },
-    { value: 70, label: "19" },
-    { value: 76, label: "20" },
-    { value: 80, label: "21" },
-    { value: 66, label: "22" },
-  ];
-  const goal = 75; // average healthy bpm goal
+  // Pulse animation
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 500,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
+
+  const onBellPress = () => {
+    Alert.alert("Notifications", "You have new reminders!");
+  };
+
+  const onViewAllPress = () => {
+    Alert.alert("Progress Report", "Opening full report...");
+  };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 100 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.smallGreeting}>Good Morning,</Text>
-          <Text style={styles.username}>{username}</Text>
-        </View>
-        <View style={styles.bellWrap}>
-          <Ionicons
-            name="notifications-outline"
-            size={22}
-            color={colors.primary}
-          />
-          <View style={styles.redDot} />
-        </View>
-      </View>
-
-      {/* Main Reminder */}
-      <LinearGradient
-        colors={["#CDEBFF", "#9BD6FF", "#5EC0FF"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.bigCard}
-      >
-        <View style={styles.bigCardHeader}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <MaterialCommunityIcons
-              name="clock-time-four-outline"
-              size={18}
-              color="#0b4e78"
-            />
-            <Text style={styles.bigCardTime}>{nextReminder.time}</Text>
-          </View>
-          <TouchableOpacity>
-            <Text style={styles.addGoal}>Manage</Text>
+    <View style={styles.container}>
+      {/* Header with more spacing */}
+      <LinearGradient colors={["#5EC0FF", "#9BD6FF"]} style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerText}>Good Morning, {username}</Text>
+          <TouchableOpacity style={styles.bellWrap} onPress={onBellPress}>
+            <Ionicons name="notifications" size={24} color="#fff" />
+            <View style={styles.redDot} />
           </TouchableOpacity>
         </View>
-
-        <Text style={styles.bigCardSub}>
-          {nextReminder.title} • {nextReminder.dose}
-        </Text>
-
-        <FlatList
-          data={week}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.key}
-          contentContainerStyle={{ paddingVertical: 12 }}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-          renderItem={({ item, index }) => {
-            const active = index === selectedIdx;
-            return (
-              <TouchableOpacity
-                style={[
-                  styles.dayPill,
-                  active ? styles.dayPillActive : styles.dayPillInactive,
-                ]}
-                onPress={() => setSelectedIdx(index)}
-              >
-                <Text style={[styles.dayNum, active && { color: "#fff" }]}>
-                  {item.dayNum}
-                </Text>
-                <Text style={[styles.dayName, active && { color: "#fff" }]}>
-                  {item.dayName}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
-        />
       </LinearGradient>
 
-      {/* Summary Cards */}
+      {/* Reminder Card with proper spacing */}
+      <View style={styles.reminderCardWrapper}>
+        <LinearGradient
+          colors={["#CDEBFF", "#9BD6FF", "#5EC0FF"]}
+          style={styles.reminderCard}
+        >
+          <View style={styles.reminderHeader}>
+            <View style={styles.timeRow}>
+              <MaterialCommunityIcons name="clock-outline" size={18} color="#0b4e78" />
+              <Text style={styles.timeText}>{nextReminder.time}</Text>
+            </View>
+            <TouchableOpacity>
+              <Text style={styles.manageBtn}>Manage</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.reminderSub}>
+            {nextReminder.title} • {nextReminder.dose}
+          </Text>
+
+          <FlatList
+            data={week}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.key}
+            contentContainerStyle={styles.weekList}
+            ItemSeparatorComponent={() => <View style={{ width: 8 }} />}
+            renderItem={({ item, index }) => {
+              const active = index === selectedIdx;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.dayPill,
+                    active ? styles.dayPillActive : styles.dayPillInactive,
+                  ]}
+                  onPress={() => setSelectedIdx(index)}
+                >
+                  <Text style={[styles.dayName, active && styles.activeText]}>
+                    {item.dayName}
+                  </Text>
+                  <Text style={[styles.dayNum, active && styles.activeText]}>
+                    {item.dayNum}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </LinearGradient>
+      </View>
+
+      {/* 4 Summary Cards */}
       <View style={styles.row}>
         <SummaryCard
           title="Upcoming"
           subtitle={`${nextReminder.title} • ${nextReminder.time}`}
-          icon={
-            <Ionicons name="medkit-outline" size={20} color={colors.primary} />
-          }
+          icon={<Ionicons name="add-circle" size={20} color="#4CAF50" />}
+          bgColor="#E8F5E9"
+          highlight={true}
         />
         <SummaryCard
           title="This Week"
           subtitle={`${medsWeek.taken}/${medsWeek.total} medicines taken`}
-          icon={
-            <Ionicons
-              name="checkmark-done-circle-outline"
-              size={20}
-              color={colors.primary}
-            />
-          }
+          icon={<Ionicons name="checkmark-circle" size={20} color="#4CAF50" />}
+          bgColor="#E8F5E9"
+          highlight={true}
         />
       </View>
 
       <View style={styles.row}>
         <SummaryCard
           title="BP & Pulse"
-          subtitle={`BP ${vitals.bp} • Pulse ${vitals.pulse}`}
-          icon={
-            <MaterialCommunityIcons
-              name="heart-pulse"
-              size={20}
-              color={colors.primary}
-            />
-          }
+          subtitle={`Pulse ${vitals.pulse}`}
+          icon={<MaterialCommunityIcons name="heart-pulse" size={20} color="#FF5252" />}
+          bgColor="#FFEBEE"
+          highlight={true}
         />
         <SummaryCard
           title="Blood Sugar"
           subtitle={vitals.sugar}
-          icon={
-            <MaterialCommunityIcons
-              name="test-tube"
-              size={20}
-              color={colors.primary}
-            />
-          }
+          icon={<MaterialCommunityIcons name="test-tube" size={20} color="#2196F3" />}
+          bgColor="#E3F2FD"
+          highlight={true}
         />
       </View>
 
-      {/* Progress Section */}
+      {/* Progress Report - UPDATED TO MATCH YOUR IMAGE */}
       <View style={styles.progressCard}>
         <View style={styles.progressHeader}>
           <Text style={styles.progressTitle}>Progress Report</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={onViewAllPress}>
             <Text style={styles.viewAll}>View All →</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.progressContent}>
-          {/* BP Circular Gauge */}
-          <View style={styles.gaugeContainer}>
-            {CircularProgress ? (
-              <CircularProgress
-                radius={45}
-                value={78}
-                maxValue={100}
-                progressColor={colors.primary}
-                title="BP"
-                titleColor={colors.textDark}
-                activeStrokeWidth={10}
-                inActiveStrokeWidth={10}
-                showProgressValue={false}
-              />
-            ) : (
-              <View style={styles.fallbackGauge}>
-                <Text style={styles.fallbackText}>BP</Text>
-                <Text style={styles.fallbackValue}>{vitals.bp}</Text>
-              </View>
-            )}
-            <Text style={styles.bpValue}>{vitals.bp}</Text>
+          {/* BP Section - Left side */}
+          <View style={styles.bpSection}>
+            <Text style={styles.sectionTitle}>BP</Text>
+            <View style={styles.bpValues}>
+              <Text style={styles.bpValue}>118/76</Text>
+              <Text style={styles.bpValue}>118/76</Text>
+            </View>
           </View>
 
-          {/* Heart Rate Simple Card */}
-<View style={styles.heartCard}>
-  <Text style={styles.heartTitle}>Heart</Text>
-  <View style={styles.heartIconContainer}>
-  <MaterialCommunityIcons name="heart-outline" size={80} color="#FF6B81" />
-  <Svg height="25" width="70" style={styles.ecgWave}>
-    <Path
-      d="M0 15 Q10 5 20 15 T40 15 T60 15"
-      stroke="#00ADEF"
-      strokeWidth="2.5"
-      fill="none"
-    />
-  </Svg>
-</View>
-  <Text style={styles.heartValue}>105</Text>
-  <Text style={styles.heartUnit}>bpm</Text>
-</View>
+          {/* Vertical Divider */}
+          <View style={styles.verticalDivider} />
+
+          {/* Heart Section - Right side */}
+          <View style={styles.heartSection}>
+            <Text style={styles.sectionTitle}>Heart</Text>
+            <View style={styles.heartContent}>
+              <Animated.Text style={[styles.heartValue, { transform: [{ scale: pulseAnim }] }]}>
+                105
+              </Animated.Text>
+              <Text style={styles.heartUnit}>bpm</Text>
+            </View>
+          </View>
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
-function SummaryCard({ title, subtitle, icon }) {
+// ──────────────────────────────────────────────────────────────
+// Summary Card Component
+// ──────────────────────────────────────────────────────────────
+function SummaryCard({ title, subtitle, icon, bgColor, highlight }) {
   return (
-    <TouchableOpacity style={styles.card}>
-      <View style={styles.cardIcon}>{icon}</View>
+    <View style={[styles.summaryCard, highlight && styles.summaryCardHighlight]}>
+      <View style={[styles.cardIcon, { backgroundColor: bgColor }]}>
+        {icon}
+      </View>
       <Text style={styles.cardTitle}>{title}</Text>
       <Text style={styles.cardSub}>{subtitle}</Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
+// ──────────────────────────────────────────────────────────────
+// Updated Styles
+// ──────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: 18,
-    paddingTop: 14,
+    backgroundColor: "#F5F7FA",
+    paddingBottom: 80, // Space for navbar
   },
- headerRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginTop: 30, // ⬅ was 16 before, increase it a bit
-  marginBottom: 8,
-},
-  smallGreeting: { color: colors.textLight, fontSize: 14 },
-  username: { color: colors.textDark, fontSize: 22, fontWeight: "800" },
-  bellWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 20,
-    backgroundColor: "#E7F4FF",
+
+  // Header with better spacing
+  header: {
+    paddingHorizontal: 18,
+    paddingTop: 50,
+    paddingBottom: 20, // Increased padding
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    marginTop: 10, // Added spacing from top
+  },
+  headerText: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  bellWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10, // Added spacing
   },
   redDot: {
     position: "absolute",
-    top: 6,
+    top: 8,
     right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: "#FF3B30",
   },
-  bigCard: { borderRadius: 20, padding: 16, marginTop: 10 },
-  bigCardHeader: {
+
+  // Reminder Card with proper spacing from header
+  reminderCardWrapper: {
+    marginHorizontal: 18,
+    marginTop: -10, // Adjusted to create proper gap
+  },
+  reminderCard: {
+    borderRadius: 20,
+    padding: 16,
+    elevation: 6,
+  },
+  reminderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  bigCardTime: { fontSize: 16, fontWeight: "700", color: "#0b4e78" },
-  bigCardSub: { marginTop: 4, color: "#0b4e78" },
-  addGoal: {
-    backgroundColor: "#ffffffcc",
+  timeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  timeText: { fontSize: 16, fontWeight: "700", color: "#0b4e78" },
+  manageBtn: {
     color: "#0b4e78",
+    fontWeight: "600",
+    backgroundColor: "#fff",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 5,
     borderRadius: 16,
-    fontWeight: "700",
+    fontSize: 13,
   },
+  reminderSub: { 
+    marginTop: 8, 
+    color: "#0b4e78", 
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  weekList: { 
+    paddingVertical: 12 
+  },
+
   dayPill: {
     width: 50,
-    borderRadius: 16,
+    borderRadius: 14,
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
+    elevation: 1,
   },
-  dayPillActive: { backgroundColor: colors.primary },
+  dayPillActive: { backgroundColor: "#0b4e78" },
   dayPillInactive: { backgroundColor: "#fff" },
-  dayNum: { fontSize: 18, fontWeight: "800", color: colors.textDark },
-  dayName: { fontSize: 11, color: colors.textLight },
+  dayName: { fontSize: 10, color: "#666" },
+  dayNum: { fontSize: 15, fontWeight: "700", marginTop: 2 },
+  activeText: { color: "#fff" },
+
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginHorizontal: 18,
+    marginTop: 14,
   },
-  card: {
+
+  // Summary Cards
+  summaryCard: {
     width: (width - 48) / 2,
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 14,
-    elevation: 2,
+    padding: 12,
+    elevation: 3,
+    alignItems: "center",
+  },
+  summaryCardHighlight: {
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   cardIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#EAF6FF",
-    alignItems: "center",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
-    marginBottom: 10,
+    alignItems: "center",
+    marginBottom: 8,
   },
-  cardTitle: { fontSize: 14, fontWeight: "800", color: colors.textDark },
-  cardSub: { fontSize: 12, color: colors.textLight },
+  cardTitle: { fontSize: 13, fontWeight: "700", color: "#000" },
+  cardSub: { fontSize: 11, color: "#666", marginTop: 2, textAlign: "center" },
+
+  // Progress Report - UPDATED TO MATCH YOUR IMAGE
   progressCard: {
+    marginHorizontal: 18,
+    marginTop: 14,
     backgroundColor: "#fff",
     borderRadius: 18,
-    marginTop: 22,
-    padding: 18,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    padding: 16,
+    elevation: 4,
+    marginBottom: 10,
   },
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  progressTitle: { fontSize: 18, fontWeight: "700", color: colors.textDark },
-  viewAll: { fontSize: 13, color: colors.primary },
+  progressTitle: { 
+    fontSize: 16, 
+    fontWeight: "700",
+    color: '#000'
+  },
+  viewAll: { 
+    fontSize: 12, 
+    color: "#5EC0FF", 
+    fontWeight: "600" 
+  },
+
   progressContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 4,
+    paddingHorizontal: 10,
   },
-  gaugeContainer: { alignItems: "center", width: "45%" },
-  fallbackGauge: {
-    borderWidth: 4,
-    borderColor: colors.primary,
-    borderRadius: 50,
-    width: 90,
-    height: 90,
-    alignItems: "center",
-    justifyContent: "center",
+
+  // BP Section
+  bpSection: {
+    flex: 1,
+    alignItems: "flex-start",
   },
-  fallbackText: { color: colors.textLight, fontSize: 14 },
-  fallbackValue: { fontSize: 18, fontWeight: "700", color: colors.textDark },
+  
+  // Heart Section
+  heartSection: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  
+  // Common section title
+  sectionTitle: { 
+    fontSize: 14, 
+    fontWeight: "700", 
+    marginBottom: 8,
+    color: '#333'
+  },
+
+  // BP Values
+  bpValues: {
+    alignItems: 'flex-start',
+    gap: 2,
+  },
   bpValue: {
     fontSize: 16,
     fontWeight: "700",
-    color: colors.textDark,
-    marginTop: 4,
+    color: "#5EC0FF",
   },
-  chartWrapper: {
-    width: "50%",
-    alignItems: "center",
+
+  // Heart Content
+  heartContent: {
+    alignItems: 'flex-end',
   },
-  heartCard: {
-  width: "50%",
-  backgroundColor: "#fff",
-  borderRadius: 16,
-  paddingVertical: 16,
-  alignItems: "center",
-  justifyContent: "center",
-  elevation: 2,
-  shadowColor: "#000",
-  shadowOpacity: 0.08,
-  shadowOffset: { width: 0, height: 2 },
-  shadowRadius: 4,
-},
-heartTitle: {
-  fontSize: 15,
-  fontWeight: "700",
-  color: colors.textDark,
-  marginBottom: 6,
-},
-heartIconContainer: {
-  position: "relative",
-  justifyContent: "center",
-  alignItems: "center",
-},
-ecgLineContainer: {
-  position: "absolute",
-  bottom: 38,
-  width: 60,
-  height: 20,
-  overflow: "hidden",
-  justifyContent: "center",
-  alignItems: "center",
-},
-ecgLine: {
-  width: 100,
-  height: 2,
-  backgroundColor: "#00ADEF",
-  borderRadius: 2,
-},
-heartValue: {
-  fontSize: 22,
-  fontWeight: "800",
-  color: "#00ADEF",
-  marginTop: 6,
-},
-heartUnit: {
-  fontSize: 12,
-  color: colors.textLight,
-  marginTop: -2,
-},
-ecgWave: {
-  position: "absolute",
-  bottom: 30, // Try between 28–32 depending on your heart icon’s size
-  left: 5,
-},
-  chartLabel: { fontSize: 14, color: colors.textLight, marginTop: 6 },
-  chartValue: { fontSize: 18, fontWeight: "700", color: colors.textDark },
+  heartValue: { 
+    fontSize: 28, 
+    fontWeight: "800", 
+    color: "#2196F3",
+    lineHeight: 30,
+  },
+  heartUnit: { 
+    fontSize: 12, 
+    color: "#666", 
+    marginTop: 2
+  },
+
+  // Vertical Divider
+  verticalDivider: {
+    width: 1,
+    height: 50,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 20,
+  },
 });

@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { View, ActivityIndicator } from "react-native";
 
+
 // Navigators
 import BottomTabNavigator from "./src/navigation/BottomTabNavigator";
 
