@@ -6,27 +6,37 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../../context/firebaseConfig";
 import colors from "../../constants/colors";
 
 export default function ForgetPasswordScreen({ navigation }) {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleCreatePassword = () => {
-    if (!password || !confirm) {
-      alert("Please fill both fields.");
+  const handlePasswordReset = async () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email address.");
       return;
     }
-    if (password !== confirm) {
-      alert("Passwords do not match!");
-      return;
+
+    try {
+      setLoading(true);
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert(
+        "Password Reset Link Sent",
+        "Please check your email for the reset instructions."
+      );
+      navigation.navigate("Login");
+    } catch (error) {
+      console.error("Reset Error:", error.message);
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
-    alert("Password reset successfully! (Demo only)");
-    navigation.navigate("Login");
   };
 
   return (
@@ -36,65 +46,47 @@ export default function ForgetPasswordScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Set Password</Text>
+        <Text style={styles.headerTitle}>Reset Password</Text>
         <View style={{ width: 26 }} />
       </View>
 
       <Text style={styles.subText}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-        tempor incididunt ut labore et dolore magna aliqua.
+        Enter your registered email address, and we’ll send you a link to reset
+        your password.
       </Text>
 
-      {/* Password Input */}
-      <Text style={styles.label}>Password</Text>
-      <View style={styles.inputWrapper}>
-        <TextInput
-          style={styles.input}
-          placeholder="********"
-          placeholderTextColor="#A0AEC0"
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setShowPassword(!showPassword)}
-        >
-          <Ionicons
-            name={showPassword ? "eye" : "eye-off"}
-            size={20}
-            color="#666"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Confirm Password */}
-      <Text style={styles.label}>Confirm Password</Text>
-      <View style={styles.inputWrapper}>
-        <TextInput
-          style={styles.input}
-          placeholder="********"
-          placeholderTextColor="#A0AEC0"
-          secureTextEntry={!showConfirm}
-          value={confirm}
-          onChangeText={setConfirm}
-        />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setShowConfirm(!showConfirm)}
-        >
-          <Ionicons
-            name={showConfirm ? "eye" : "eye-off"}
-            size={20}
-            color="#666"
-          />
-        </TouchableOpacity>
-      </View>
+      {/* Email Input */}
+      <Text style={styles.label}>Email</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="example@example.com"
+        placeholderTextColor="#A0AEC0"
+        keyboardType="email-address"
+        value={email}
+        onChangeText={setEmail}
+      />
 
       {/* Button */}
-      <TouchableOpacity style={styles.button} onPress={handleCreatePassword}>
-        <Text style={styles.buttonText}>Create New Password</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handlePasswordReset}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? "Sending..." : "Send Reset Link"}
+        </Text>
       </TouchableOpacity>
+
+      {/* Footer (optional navigation) */}
+      <Text style={styles.footer}>
+        Remembered your password?{" "}
+        <Text
+          style={styles.link}
+          onPress={() => navigation.navigate("Login")}
+        >
+          Log In
+        </Text>
+      </Text>
     </ScrollView>
   );
 }
@@ -129,10 +121,6 @@ const styles = StyleSheet.create({
     color: colors.textDark,
     marginBottom: 8,
   },
-  inputWrapper: {
-    position: "relative",
-    marginBottom: 20,
-  },
   input: {
     backgroundColor: "#EEF6FB",
     borderRadius: 30,
@@ -141,11 +129,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D0E2F2",
     color: colors.textDark,
-  },
-  eyeIcon: {
-    position: "absolute",
-    right: 20,
-    top: 14,
+    marginBottom: 20,
   },
   button: {
     backgroundColor: colors.primary,
@@ -157,6 +141,15 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: 16,
+    fontWeight: "600",
+  },
+  footer: {
+    textAlign: "center",
+    color: colors.textLight,
+    marginTop: 25,
+  },
+  link: {
+    color: colors.primary,
     fontWeight: "600",
   },
 });

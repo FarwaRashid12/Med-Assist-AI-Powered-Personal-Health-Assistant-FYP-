@@ -4,26 +4,25 @@ import AuthStack from "./AuthStack";
 import CoreStack from "./CoreStack";
 
 export default function AppNavigator() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Start showing splash for a few seconds
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // ✅ true for testing
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2500); // splash delay
+    }, 2500);
     return () => clearTimeout(timer);
   }, []);
 
-  if (showSplash) {
-    // 🔹 Temporary Splash (so app won’t flicker)
-    return <AuthStack initial="SplashScreen" />;
-  }
-
   return (
     <NavigationContainer>
-      {isLoggedIn ? <CoreStack /> : <AuthStack />}
+      {showSplash ? (
+        <AuthStack initial="SplashScreen" />
+      ) : isLoggedIn ? (
+        <CoreStack /> // ✅ This loads MainTabs + ProgressReport
+      ) : (
+        <AuthStack />
+      )}
     </NavigationContainer>
   );
 }

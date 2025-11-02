@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,20 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
-  ScrollView,
+  Animated,
+  Easing,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { LineChart } from "react-native-gifted-charts";
 import colors from "../../constants/colors";
-import Svg, { Path } from "react-native-svg"
-
-let CircularProgress;
-try {
-  CircularProgress = require("react-native-gifted-charts").CircularProgress;
-} catch (e) {
-  CircularProgress = undefined;
-}
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +22,7 @@ const getCurrentWeek = () => {
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const monday = new Date(today);
   monday.setDate(today.getDate() + mondayOffset);
+
   const days = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
@@ -47,289 +41,281 @@ const getCurrentWeek = () => {
   return days;
 };
 
+// 🕒 dynamic greeting
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 18) return "Good Afternoon";
+  return "Good Evening";
+};
+
 export default function HomeDashboard({ navigation, route }) {
-  const username = route?.params?.name || "Aashifa Sheikh";
+  const username = route?.params?.name || "User";
   const week = useMemo(() => getCurrentWeek(), []);
   const [selectedIdx, setSelectedIdx] = useState(
     week.findIndex((d) => d.isToday) ?? 0
   );
 
-  // Mock data
-  const nextReminder = { time: "11:00 AM", title: "Vitamin D", dose: "1 tab" };
+  const nextReminder = { time: "11:00 AM" };
   const medsWeek = { taken: 4, total: 7 };
   const vitals = { bp: "118/76", sugar: "104 mg/dL", pulse: "74 bpm" };
 
-  // Heart rate data (like daily BPM)
-  const heartRateData = [
-    { value: 72, label: "16" },
-    { value: 68, label: "17" },
-    { value: 74, label: "18" },
-    { value: 70, label: "19" },
-    { value: 76, label: "20" },
-    { value: 80, label: "21" },
-    { value: 66, label: "22" },
-  ];
-  const goal = 75; // average healthy bpm goal
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  React.useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 600,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 100 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.smallGreeting}>Good Morning,</Text>
-          <Text style={styles.username}>{username}</Text>
-        </View>
-        <View style={styles.bellWrap}>
-          <Ionicons
-            name="notifications-outline"
-            size={22}
-            color={colors.primary}
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.container}>
+        {/* Header */}
+        <LinearGradient
+          colors={[colors.primary, colors.accent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.greetingText}>{getGreeting()},</Text>
+              <Text style={styles.username}>{username}</Text>
+            </View>
+            <TouchableOpacity style={styles.bellWrap}>
+              <Ionicons name="notifications-outline" size={22} color={colors.white} />
+              <View style={styles.redDot} />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+
+        {/* Reminder */}
+        <LinearGradient
+          colors={[colors.primary, colors.accent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.reminderCard}
+        >
+          <View style={styles.reminderHeader}>
+            <View style={styles.timeRow}>
+              <MaterialCommunityIcons name="clock-outline" size={18} color={colors.white} />
+              <Text style={styles.reminderTime}>{nextReminder.time}</Text>
+            </View>
+            <TouchableOpacity>
+              <Text style={styles.manageBtn}>Manage</Text>
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={week}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.key}
+            contentContainerStyle={styles.weekList}
+            renderItem={({ item, index }) => {
+              const active = index === selectedIdx;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.dayPill,
+                    active ? styles.dayPillActive : styles.dayPillInactive,
+                  ]}
+                  onPress={() => setSelectedIdx(index)}
+                >
+                  <Text style={[styles.dayName, active && styles.activeText]}>
+                    {item.dayName}
+                  </Text>
+                  <Text style={[styles.dayNum, active && styles.activeText]}>
+                    {item.dayNum}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
           />
-          <View style={styles.redDot} />
-        </View>
-      </View>
+        </LinearGradient>
 
-      {/* Main Reminder */}
-      <LinearGradient
-        colors={["#CDEBFF", "#9BD6FF", "#5EC0FF"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.bigCard}
-      >
-        <View style={styles.bigCardHeader}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <MaterialCommunityIcons
-              name="clock-time-four-outline"
-              size={18}
-              color="#0b4e78"
-            />
-            <Text style={styles.bigCardTime}>{nextReminder.time}</Text>
+        {/* Summary Row */}
+        <View style={styles.row}>
+          <SummaryCard
+            title="Upcoming"
+            subtitle={`${nextReminder.time}`}
+            icon={<Ionicons name="medkit-outline" size={20} color={colors.accent} />}
+          />
+          <SummaryCard
+            title="This Week"
+            subtitle={`${medsWeek.taken}/${medsWeek.total} taken`}
+            icon={<Ionicons name="checkmark-done-circle-outline" size={20} color="#4CAF50" />}
+          />
+        </View>
+
+        <View style={styles.row}>
+          <SummaryCard
+            title="BP & Pulse"
+            subtitle={`Pulse ${vitals.pulse}`}
+            icon={<MaterialCommunityIcons name="heart-pulse" size={20} color="#FF6B81" />}
+          />
+          <SummaryCard
+            title="Blood Sugar"
+            subtitle={vitals.sugar}
+            icon={<MaterialCommunityIcons name="test-tube" size={20} color={colors.primary} />}
+          />
+        </View>
+
+        {/* Progress Report */}
+        <View style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressTitle}>Progress Report</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Profile", { screen: "ProgressReport" })}
+            >
+              <Text style={styles.viewAll}>View All →</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity>
-            <Text style={styles.addGoal}>Manage</Text>
-          </TouchableOpacity>
-        </View>
 
-        <Text style={styles.bigCardSub}>
-          {nextReminder.title} • {nextReminder.dose}
-        </Text>
-
-        <FlatList
-          data={week}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.key}
-          contentContainerStyle={{ paddingVertical: 12 }}
-          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
-          renderItem={({ item, index }) => {
-            const active = index === selectedIdx;
-            return (
-              <TouchableOpacity
-                style={[
-                  styles.dayPill,
-                  active ? styles.dayPillActive : styles.dayPillInactive,
-                ]}
-                onPress={() => setSelectedIdx(index)}
+          <View style={styles.progressContent}>
+            <View style={styles.bpContainer}>
+              <LinearGradient
+                colors={[colors.accent, colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.bpOuterCircle}
               >
-                <Text style={[styles.dayNum, active && { color: "#fff" }]}>
-                  {item.dayNum}
-                </Text>
-                <Text style={[styles.dayName, active && { color: "#fff" }]}>
-                  {item.dayName}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </LinearGradient>
+                <View style={styles.bpInnerCircle}>
+                  <Text style={styles.bpLabel}>BP</Text>
+                  <Text style={styles.bpValue}>{vitals.bp}</Text>
+                </View>
+              </LinearGradient>
+            </View>
 
-      {/* Summary Cards */}
-      <View style={styles.row}>
-        <SummaryCard
-          title="Upcoming"
-          subtitle={`${nextReminder.title} • ${nextReminder.time}`}
-          icon={
-            <Ionicons name="medkit-outline" size={20} color={colors.primary} />
-          }
-        />
-        <SummaryCard
-          title="This Week"
-          subtitle={`${medsWeek.taken}/${medsWeek.total} medicines taken`}
-          icon={
-            <Ionicons
-              name="checkmark-done-circle-outline"
-              size={20}
-              color={colors.primary}
-            />
-          }
-        />
-      </View>
+            <View style={styles.verticalDivider} />
 
-      <View style={styles.row}>
-        <SummaryCard
-          title="BP & Pulse"
-          subtitle={`BP ${vitals.bp} • Pulse ${vitals.pulse}`}
-          icon={
-            <MaterialCommunityIcons
-              name="heart-pulse"
-              size={20}
-              color={colors.primary}
-            />
-          }
-        />
-        <SummaryCard
-          title="Blood Sugar"
-          subtitle={vitals.sugar}
-          icon={
-            <MaterialCommunityIcons
-              name="test-tube"
-              size={20}
-              color={colors.primary}
-            />
-          }
-        />
-      </View>
-
-      {/* Progress Section */}
-      <View style={styles.progressCard}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressTitle}>Progress Report</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAll}>View All →</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.progressContent}>
-          {/* BP Circular Gauge */}
-          <View style={styles.gaugeContainer}>
-            {CircularProgress ? (
-              <CircularProgress
-                radius={45}
-                value={78}
-                maxValue={100}
-                progressColor={colors.primary}
-                title="BP"
-                titleColor={colors.textDark}
-                activeStrokeWidth={10}
-                inActiveStrokeWidth={10}
-                showProgressValue={false}
-              />
-            ) : (
-              <View style={styles.fallbackGauge}>
-                <Text style={styles.fallbackText}>BP</Text>
-                <Text style={styles.fallbackValue}>{vitals.bp}</Text>
-              </View>
-            )}
-            <Text style={styles.bpValue}>{vitals.bp}</Text>
+            <View style={styles.heartContainer}>
+              <Text style={styles.heartLabel}>Heart</Text>
+              <Animated.View
+                style={[
+                  styles.heartIconWrapper,
+                  { transform: [{ scale: pulseAnim }] },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="heart-outline"
+                  size={78}
+                  color="#FF6B81"
+                />
+              </Animated.View>
+              <Text style={styles.heartValue}>105</Text>
+              <Text style={styles.heartUnit}>bpm</Text>
+            </View>
           </View>
-
-          {/* Heart Rate Simple Card */}
-<View style={styles.heartCard}>
-  <Text style={styles.heartTitle}>Heart</Text>
-  <View style={styles.heartIconContainer}>
-  <MaterialCommunityIcons name="heart-outline" size={80} color="#FF6B81" />
-  <Svg height="25" width="70" style={styles.ecgWave}>
-    <Path
-      d="M0 15 Q10 5 20 15 T40 15 T60 15"
-      stroke="#00ADEF"
-      strokeWidth="2.5"
-      fill="none"
-    />
-  </Svg>
-</View>
-  <Text style={styles.heartValue}>105</Text>
-  <Text style={styles.heartUnit}>bpm</Text>
-</View>
         </View>
       </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 function SummaryCard({ title, subtitle, icon }) {
   return (
-    <TouchableOpacity style={styles.card}>
+    <View style={styles.card}>
       <View style={styles.cardIcon}>{icon}</View>
       <Text style={styles.cardTitle}>{title}</Text>
       <Text style={styles.cardSub}>{subtitle}</Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
+/* -------------------------- Styles -------------------------- */
 const styles = StyleSheet.create({
-  container: {
+  safeContainer: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 18,
-    paddingTop: 14,
   },
- headerRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginTop: 30, // ⬅ was 16 before, increase it a bit
-  marginBottom: 8,
-},
-  smallGreeting: { color: colors.textLight, fontSize: 14 },
-  username: { color: colors.textDark, fontSize: 22, fontWeight: "800" },
+  container: {
+    flex: 1,
+    paddingBottom: 20,
+  },
+  header: {
+    paddingHorizontal: 18,
+    paddingTop: 45,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    elevation: 4,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  greetingText: { color: "#E0F2FF", fontSize: 14 },
+  username: { color: colors.white, fontSize: 20, fontWeight: "800" },
   bellWrap: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    backgroundColor: "#E7F4FF",
+    backgroundColor: "rgba(255,255,255,0.25)",
     alignItems: "center",
     justifyContent: "center",
   },
   redDot: {
     position: "absolute",
-    top: 6,
+    top: 8,
     right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: "#FF3B30",
   },
-  bigCard: { borderRadius: 20, padding: 16, marginTop: 10 },
-  bigCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  reminderCard: {
+    marginHorizontal: 18,
+    marginTop: 12,
+    borderRadius: 20,
+    padding: 14,
+    elevation: 5,
   },
-  bigCardTime: { fontSize: 16, fontWeight: "700", color: "#0b4e78" },
-  bigCardSub: { marginTop: 4, color: "#0b4e78" },
-  addGoal: {
-    backgroundColor: "#ffffffcc",
-    color: "#0b4e78",
+  reminderHeader: { flexDirection: "row", justifyContent: "space-between" },
+  timeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  reminderTime: { fontSize: 16, fontWeight: "700", color: colors.white },
+  manageBtn: {
+    backgroundColor: "#fff",
+    color: colors.primary,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingVertical: 5,
+    borderRadius: 14,
     fontWeight: "700",
   },
-  dayPill: {
-    width: 50,
-    borderRadius: 16,
-    alignItems: "center",
-    paddingVertical: 10,
-  },
+  dayPill: { width: 45, borderRadius: 14, alignItems: "center", paddingVertical: 8 },
   dayPillActive: { backgroundColor: colors.primary },
-  dayPillInactive: { backgroundColor: "#fff" },
-  dayNum: { fontSize: 18, fontWeight: "800", color: colors.textDark },
-  dayName: { fontSize: 11, color: colors.textLight },
+  dayPillInactive: { backgroundColor: colors.white },
+  dayName: { fontSize: 11, color: "#666" },
+  dayNum: { fontSize: 15, fontWeight: "700" },
+  activeText: { color: colors.white },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginHorizontal: 18,
+    marginTop: 12,
   },
   card: {
     width: (width - 48) / 2,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 16,
-    padding: 14,
-    elevation: 2,
+    padding: 12,
+    elevation: 4,
   },
   cardIcon: {
     width: 34,
@@ -338,112 +324,49 @@ const styles = StyleSheet.create({
     backgroundColor: "#EAF6FF",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 6,
   },
-  cardTitle: { fontSize: 14, fontWeight: "800", color: colors.textDark },
-  cardSub: { fontSize: 12, color: colors.textLight },
+  cardTitle: { fontSize: 14, fontWeight: "700", color: "#000" },
+  cardSub: { fontSize: 12, color: "#666" },
   progressCard: {
-    backgroundColor: "#fff",
+    marginHorizontal: 18,
+    marginTop: 14,
+    backgroundColor: colors.white,
     borderRadius: 18,
-    marginTop: 22,
-    padding: 18,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    padding: 14,
+    elevation: 5,
   },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  progressTitle: { fontSize: 18, fontWeight: "700", color: colors.textDark },
-  viewAll: { fontSize: 13, color: colors.primary },
+  progressHeader: { flexDirection: "row", justifyContent: "space-between" },
+  progressTitle: { fontSize: 16, fontWeight: "700", color: "#000" },
+  viewAll: { fontSize: 12, color: colors.primary, fontWeight: "600" },
   progressContent: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-evenly",
     alignItems: "center",
-    paddingVertical: 4,
+    marginTop: 10,
   },
-  gaugeContainer: { alignItems: "center", width: "45%" },
-  fallbackGauge: {
-    borderWidth: 4,
-    borderColor: colors.primary,
-    borderRadius: 50,
+  bpContainer: { alignItems: "center" },
+  bpOuterCircle: {
     width: 90,
     height: 90,
+    borderRadius: 45,
     alignItems: "center",
     justifyContent: "center",
   },
-  fallbackText: { color: colors.textLight, fontSize: 14 },
-  fallbackValue: { fontSize: 18, fontWeight: "700", color: colors.textDark },
-  bpValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.textDark,
-    marginTop: 4,
-  },
-  chartWrapper: {
-    width: "50%",
+  bpInnerCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "#fff",
     alignItems: "center",
+    justifyContent: "center",
   },
-  heartCard: {
-  width: "50%",
-  backgroundColor: "#fff",
-  borderRadius: 16,
-  paddingVertical: 16,
-  alignItems: "center",
-  justifyContent: "center",
-  elevation: 2,
-  shadowColor: "#000",
-  shadowOpacity: 0.08,
-  shadowOffset: { width: 0, height: 2 },
-  shadowRadius: 4,
-},
-heartTitle: {
-  fontSize: 15,
-  fontWeight: "700",
-  color: colors.textDark,
-  marginBottom: 6,
-},
-heartIconContainer: {
-  position: "relative",
-  justifyContent: "center",
-  alignItems: "center",
-},
-ecgLineContainer: {
-  position: "absolute",
-  bottom: 38,
-  width: 60,
-  height: 20,
-  overflow: "hidden",
-  justifyContent: "center",
-  alignItems: "center",
-},
-ecgLine: {
-  width: 100,
-  height: 2,
-  backgroundColor: "#00ADEF",
-  borderRadius: 2,
-},
-heartValue: {
-  fontSize: 22,
-  fontWeight: "800",
-  color: "#00ADEF",
-  marginTop: 6,
-},
-heartUnit: {
-  fontSize: 12,
-  color: colors.textLight,
-  marginTop: -2,
-},
-ecgWave: {
-  position: "absolute",
-  bottom: 30, // Try between 28–32 depending on your heart icon’s size
-  left: 5,
-},
-  chartLabel: { fontSize: 14, color: colors.textLight, marginTop: 6 },
-  chartValue: { fontSize: 18, fontWeight: "700", color: colors.textDark },
+  bpLabel: { fontSize: 13, color: "#666" },
+  bpValue: { fontSize: 15, fontWeight: "800", color: colors.primary },
+  verticalDivider: { width: 1, height: 60, backgroundColor: "#E0E0E0" },
+  heartContainer: { alignItems: "center" },
+  heartLabel: { fontSize: 14, color: "#666" },
+  heartValue: { fontSize: 24, fontWeight: "800", color: colors.primary },
+  heartUnit: { fontSize: 12, color: "#666" },
+  heartIconWrapper: { justifyContent: "center", alignItems: "center" },
 });

@@ -4,100 +4,123 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
+  Alert,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "../../context/firebaseConfig";
+import { ref, get } from "firebase/database";
 import colors from "../../constants/colors";
 
 export default function LoginScreen({ navigation }) {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // ✅ Handle login
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter both email and password.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // ✅ Authenticate using Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // ✅ Fetch user data from Realtime Database
+      const userRef = ref(db, `users/${user.uid}`);
+      const snapshot = await get(userRef);
+
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        console.log("User Data:", userData);
+        Alert.alert("Welcome!", `Hello ${userData.fullName || "User"} 👋`);
+        navigation.replace("MainTabs"); // Navigate to your app's main screen
+      } else {
+        Alert.alert("Error", "User data not found in database.");
+      }
+    } catch (error) {
+      console.error("Login Error:", error.message);
+      if (error.message.includes("auth/invalid-credential")) {
+        Alert.alert("Login Failed", "Invalid email or password.");
+      } else {
+        Alert.alert("Login Failed", error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={26} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Log In</Text>
-        <View style={{ width: 26 }} />
-      </View>
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.container}>
+         {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={26} color={colors.primary} />
+            </TouchableOpacity>
+          
+            <View style={{ width: 26 }} />
+          </View>
 
-      <Text style={styles.welcome}>Welcome</Text>
-      <Text style={styles.subText}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-        tempor incididunt ut labore et dolore magna aliqua.
-      </Text>
+          <Text style={styles.welcome}>Welcome</Text>
+          <Text style={styles.subText}>
+            Log in securely using your email and password.
+          </Text>
 
-      <Text style={styles.label}>Phone Number</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your phone number"
-        placeholderTextColor="#A0AEC0"
-        keyboardType="phone-pad"
-        value={phone}
-        onChangeText={setPhone}
-      />
-
-      <Text style={styles.label}>Password</Text>
-      <View style={styles.passwordContainer}>
-        <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
-          placeholder="********"
-          placeholderTextColor="#A0AEC0"
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setShowPassword(!showPassword)}
-        >
-          <Ionicons
-            name={showPassword ? "eye-off-outline" : "eye-outline"}
-            size={22}
-            color={colors.primary}
+          {/* Email Input */}
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="example@example.com"
+            placeholderTextColor="#A0AEC0"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
           />
-        </TouchableOpacity>
-      </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate("ForgetPasswordScreen")}>
-        <Text style={styles.forgot}>Forgot Password?</Text>
-      </TouchableOpacity>
+          {/* Password Input */}
+          <Text style={styles.label}>Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="********"
+            placeholderTextColor="#A0AEC0"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.replace("MainTabs")}
-      >
-        <Text style={styles.buttonText}>Log In</Text>
-      </TouchableOpacity>
+          {/* Login Button */}
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Logging in..." : "Login"}
+            </Text>
+          </TouchableOpacity>
 
-      <Text style={styles.or}>or sign up with</Text>
-      <View style={styles.socialContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="logo-google" size={22} color={colors.primary} />
-        </View>
-        <View style={styles.iconCircle}>
-          <Ionicons name="logo-facebook" size={22} color={colors.primary} />
-        </View>
-        <View style={styles.iconCircle}>
-          <Ionicons name="finger-print-outline" size={22} color={colors.primary} />
-        </View>
-      </View>
-
-      <Text style={styles.footer}>
-        Don’t have an account?{" "}
-        <Text
-          style={styles.link}
-          onPress={() => navigation.navigate("Signup")}
-        >
-          Sign Up
-        </Text>
-      </Text>
-    </ScrollView>
+          {/* Footer */}
+          <Text style={styles.footer}>
+            Don’t have an account?{" "}
+            <Text
+              style={styles.link}
+              onPress={() => navigation.navigate("Signup")}
+            >
+              Sign Up
+            </Text>
+          </Text>
+        </ScrollView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
@@ -147,44 +170,25 @@ const styles = StyleSheet.create({
     borderColor: "#D0E2F2",
     color: colors.textDark,
   },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  eyeIcon: { position: "absolute", right: 18 },
-  forgot: {
-    textAlign: "right",
-    color: colors.primary,
-    fontSize: 13,
-    marginBottom: 25,
-  },
   button: {
     backgroundColor: colors.primary,
     paddingVertical: 15,
     borderRadius: 40,
     alignItems: "center",
+    marginTop: 10,
   },
-  buttonText: { color: colors.white, fontSize: 16, fontWeight: "600" },
-  or: {
+  buttonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  footer: {
     textAlign: "center",
-    color: "#999",
-    marginTop: 20,
-    marginBottom: 10,
+    color: colors.textLight,
+    marginTop: 25,
   },
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 20,
-    marginBottom: 25,
+  link: {
+    color: colors.primary,
+    fontWeight: "600",
   },
-  iconCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 25,
-    backgroundColor: "#E3F2FD",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footer: { textAlign: "center", color: colors.textLight },
-  link: { color: colors.primary, fontWeight: "600" },
 });

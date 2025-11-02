@@ -4,244 +4,146 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { ref, set } from "firebase/database";
+import { auth, db } from "../../context/firebaseConfig";
 import colors from "../../constants/colors";
 
 export default function SignupScreen({ navigation }) {
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [dob, setDob] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
-  if (!fullName || !phone || !password || !confirmPassword || !dob) {
-    Alert.alert("Error", "Please fill all fields.");
-    return;
-  }
+  const handleSignup = async () => {
+    if (!fullName || !email || !password || !confirmPassword) {
+      Alert.alert("Error", "All fields are required!");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match!");
+      return;
+    }
 
-  if (password !== confirmPassword) {
-    Alert.alert("Error", "Passwords do not match.");
-    return;
-  }
+    setLoading(true);
+    try {
+      // ✅ Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-  // ✅ Show success message for a short moment, then go to Login
-  Alert.alert("Success", "Your account has been created successfully!");
+      // ✅ Save user data to Realtime Database
+      await set(ref(db, `users/${user.uid}`), {
+        fullName,
+        email,
+        createdAt: new Date().toISOString(),
+      });
 
-  // Wait 1.8 seconds before navigating to Login
-  setTimeout(() => {
-    navigation.replace("Login");
-  }, 1800);
-};
+      // ✅ Update Firebase Auth profile
+      await updateProfile(user, { displayName: fullName });
 
+      Alert.alert("Success", "Account created successfully!");
+      navigation.replace("Login");
+    } catch (error) {
+      console.error("Signup Error:", error.message);
+      Alert.alert("Signup Failed", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={26} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Account</Text>
-        <View style={{ width: 26 }} />
-      </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={styles.title}>New Account</Text>
 
-      {/* Inputs */}
-      <Text style={styles.label}>Full Name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="John Doe"
-        placeholderTextColor="#A0AEC0"
-        value={fullName}
-        onChangeText={setFullName}
-      />
-
-      <Text style={styles.label}>Phone Number</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your phone number"
-        placeholderTextColor="#A0AEC0"
-        keyboardType="phone-pad"
-        value={phone}
-        onChangeText={setPhone}
-      />
-
-      <Text style={styles.label}>Password</Text>
-      <View style={styles.passwordContainer}>
+        <Text style={styles.label}>Full Name</Text>
         <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          style={styles.input}
+          placeholder="John Doe"
+          placeholderTextColor="#9CA3AF"
+          value={fullName}
+          onChangeText={setFullName}
+        />
+
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="example@gmail.com"
+          placeholderTextColor="#9CA3AF"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+        />
+
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={styles.input}
           placeholder="********"
-          placeholderTextColor="#A0AEC0"
-          secureTextEntry={!showPassword}
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
-        <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setShowPassword(!showPassword)}
-        >
-          <Ionicons
-            name={showPassword ? "eye-off-outline" : "eye-outline"}
-            size={22}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
 
-      <Text style={styles.label}>Confirm Password</Text>
-      <View style={styles.passwordContainer}>
+        <Text style={styles.label}>Confirm Password</Text>
         <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          style={styles.input}
           placeholder="********"
-          placeholderTextColor="#A0AEC0"
-          secureTextEntry={!showConfirm}
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
+
         <TouchableOpacity
-          style={styles.eyeIcon}
-          onPress={() => setShowConfirm(!showConfirm)}
+          style={styles.button}
+          onPress={handleSignup}
+          disabled={loading}
         >
-          <Ionicons
-            name={showConfirm ? "eye-off-outline" : "eye-outline"}
-            size={22}
-            color={colors.primary}
-          />
+          <Text style={styles.buttonText}>
+            {loading ? "Creating..." : "Sign Up"}
+          </Text>
         </TouchableOpacity>
-      </View>
 
-      <Text style={styles.label}>Date of Birth</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="DD / MM / YYYY"
-        placeholderTextColor="#A0AEC0"
-        keyboardType="numeric"
-        value={dob}
-        onChangeText={setDob}
-      />
-
-      {/* Button */}
-      <TouchableOpacity style={styles.button} onPress={handleSignup}>
-        <Text style={styles.buttonText}>Sign Up</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.terms}>
-        By continuing, you agree to our{" "}
-        <Text style={styles.link}>Terms of Use</Text> and{" "}
-        <Text style={styles.link}>Privacy Policy</Text>.
-      </Text>
-
-      {/* Social login */}
-      <Text style={styles.or}>or sign up with</Text>
-      <View style={styles.socialContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="logo-google" size={22} color={colors.primary} />
-        </View>
-        <View style={styles.iconCircle}>
-          <Ionicons name="logo-facebook" size={22} color={colors.primary} />
-        </View>
-        <View style={styles.iconCircle}>
-          <Ionicons
-            name="finger-print-outline"
-            size={22}
-            color={colors.primary}
-          />
-        </View>
-      </View>
-
-      <Text style={styles.footer}>
-        Already have an account?{" "}
-        <Text style={styles.link} onPress={() => navigation.navigate("Login")}>
-          Log In
+        <Text style={styles.footer}>
+          Already have an account?{" "}
+          <Text
+            style={styles.link}
+            onPress={() => navigation.navigate("Login")}
+          >
+            Log In
+          </Text>
         </Text>
-      </Text>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: colors.background,
-    padding: 25,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 20,
-  },
-  headerTitle: {
-    color: colors.primary,
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textDark,
-    marginBottom: 6,
-    marginTop: 10,
-  },
+  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+  scroll: { flexGrow: 1, justifyContent: "center" },
+  title: { fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 20,   color: "#0077b6", },
+  label: { fontWeight: "600", marginTop: 10 , color: colors.textDark,},
   input: {
     backgroundColor: "#EEF6FB",
     borderRadius: 30,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#D0E2F2",
-    color: colors.textDark,
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "relative",
-  },
-  eyeIcon: {
-    position: "absolute",
-    right: 20,
+    padding: 12,
+    marginTop: 5,
   },
   button: {
-    backgroundColor: colors.primary,
-    paddingVertical: 15,
+    backgroundColor: "#0077b6",
     borderRadius: 40,
+    paddingVertical: 15,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 25,
   },
-  buttonText: { color: colors.white, fontSize: 16, fontWeight: "600" },
-  terms: {
-    fontSize: 12,
-    color: colors.textLight,
-    textAlign: "center",
-    marginVertical: 15,
-  },
-  link: { color: colors.primary, fontWeight: "600" },
-  or: {
-    textAlign: "center",
-    color: "#999",
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 20,
-    marginBottom: 25,
-  },
-  iconCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 25,
-    backgroundColor: "#E3F2FD",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footer: { textAlign: "center", color: colors.textLight },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  footer: { textAlign: "center", marginTop: 20, color: "#777" },
+  link: { color: "#0077b6", fontWeight: "600" },
 });
