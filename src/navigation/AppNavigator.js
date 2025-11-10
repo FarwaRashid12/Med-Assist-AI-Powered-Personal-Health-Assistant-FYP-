@@ -4,7 +4,7 @@ import AuthStack from "./AuthStack";
 import CoreStack from "./CoreStack";
 
 export default function AppNavigator() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // ✅ true for testing
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function AppNavigator() {
       {showSplash ? (
         <AuthStack initial="SplashScreen" />
       ) : isLoggedIn ? (
-        <CoreStack /> // ✅ This loads MainTabs + ProgressReport
+        <CoreStack />
       ) : (
         <AuthStack />
       )}

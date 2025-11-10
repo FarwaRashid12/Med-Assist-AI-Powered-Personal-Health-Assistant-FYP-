@@ -1,10 +1,11 @@
 {
   "expo": {
+    
     "name": "Med-Assist-AI-Powered-Personal-Health-Assistant-FYP-",
     "slug": "Med-Assist-AI-Powered-Personal-Health-Assistant-FYP-",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/icons/adaptive-icon.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -16,25 +17,23 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Allow Med-Assist to use the camera to scan prescriptions.",
-        "NSUserNotificationUsageDescription": "Allow Med-Assist to send medicine reminders."
+        "NSUserNotificationUsageDescription": "Allow Med-Assist to send medicine reminders.",
+        "NSContactsUsageDescription": "Allow Med-Assist to access your contacts to add emergency contacts."
       }
     },
-    "android": {
-      "package": "com.medassist.fyp",
-      "adaptiveIcon": {
-        "foregroundImage": "./src/assets/icons/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "permissions": [
-        "CAMERA",
-        "NOTIFICATIONS",
-        "VIBRATE"
-      ],
-      "edgeToEdgeEnabled": true
-    },
+   "android": {
+  "permissions": ["CAMERA", "NOTIFICATIONS", "VIBRATE", "READ_CONTACTS"],
+  "package": "com.medassist.fyp",
+  "edgeToEdgeEnabled": true,
+  "adaptiveIcon": {
+    "foregroundImage": "./src/assets/icons/adaptive-icon.png",
+    "backgroundColor": "#ffffff"
+  }
+}
+,
     "plugins": [
       [
-        "expo-camera",
+      "expo-image-picker",
         {
           "cameraPermission": "Allow Med-Assist to access your camera."
         }
@@ -48,13 +47,13 @@
       ]
     ],
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "dedacea6-b68f-421d-9849-6f2316e3acde"
+        "projectId": "dedacea6-b68f-421d-9849-6f2316e3acde",
+        "GOOGLE_VISION_API_KEY": "AIzaSyAP98rAgIJJC8vsdwtgdNE2Zdf6WMxFcWs"
       }
     }
   }
 }
-

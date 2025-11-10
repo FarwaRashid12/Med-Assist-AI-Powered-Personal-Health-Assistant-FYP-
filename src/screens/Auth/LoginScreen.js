@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth, db } from "../../context/firebaseConfig";
 import { ref, get } from "firebase/database";
 import colors from "../../constants/colors";
@@ -28,6 +28,16 @@ export default function LoginScreen({ navigation }) {
     }
 
     setLoading(true);
+    // Check if email exists in Firebase Auth before attempting login
+    let emailExists = false;
+    try {
+      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      emailExists = signInMethods && signInMethods.length > 0;
+    } catch (checkError) {
+      // If check fails, we can't determine if email exists
+      emailExists = false;
+    }
+
     try {
       // ✅ Authenticate using Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -46,11 +56,56 @@ export default function LoginScreen({ navigation }) {
         Alert.alert("Error", "User data not found in database.");
       }
     } catch (error) {
-      console.error("Login Error:", error.message);
-      if (error.message.includes("auth/invalid-credential")) {
-        Alert.alert("Login Failed", "Invalid email or password.");
-      } else {
-        Alert.alert("Login Failed", error.message);
+      // Handle different Firebase auth errors with user-friendly messages
+      // Use the emailExists check we did before login attempt
+      const errorCode = error.code || "";
+      const errorMessage = error.message || "";
+
+      // Check for wrong password error first
+      if (errorCode === "auth/wrong-password" || errorMessage.includes("auth/wrong-password")) {
+        Alert.alert(
+          "Login Failed",
+          "Enter correct password."
+        );
+      } 
+      // If email exists but we got invalid-credential, it means wrong password
+      else if (emailExists && (errorCode === "auth/invalid-credential" || errorMessage.includes("auth/invalid-credential"))) {
+        Alert.alert(
+          "Login Failed",
+          "Enter correct password."
+        );
+      } 
+      // If email doesn't exist and we got invalid-credential, it means account doesn't exist
+      else if (!emailExists && (errorCode === "auth/invalid-credential" || errorMessage.includes("auth/invalid-credential"))) {
+        Alert.alert(
+          "Login Failed",
+          "Account does not exist. Please try signing up."
+        );
+      } 
+      // If we couldn't check email existence but got invalid-credential, show generic message
+      else if (errorCode === "auth/invalid-credential" || errorMessage.includes("auth/invalid-credential")) {
+        Alert.alert(
+          "Login Failed",
+          "Invalid email or password. Please check your credentials and try again."
+        );
+      } 
+      else if (errorCode === "auth/user-not-found" || errorMessage.includes("auth/user-not-found")) {
+        Alert.alert(
+          "Login Failed",
+          "Account does not exist. Please try signing up."
+        );
+      } 
+      else if (errorCode === "auth/invalid-email" || errorMessage.includes("auth/invalid-email")) {
+        Alert.alert(
+          "Login Failed",
+          "Invalid email format. Please check your email address."
+        );
+      } 
+      else {
+        Alert.alert(
+          "Login Failed",
+          "Unable to login. Please check your credentials and try again."
+        );
       }
     } finally {
       setLoading(false);
