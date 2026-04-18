@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Med-Assist-AI-Powered-Personal-Health-Assistant-FYP-.iml" filepath="$PROJECT_DIR$/.idea/Med-Assist-AI-Powered-Personal-Health-Assistant-FYP-.iml" />
+      <module fileurl="file://$PROJECT_DIR$/medassist.iml" filepath="$PROJECT_DIR$/medassist.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android/medassist_android.iml" filepath="$PROJECT_DIR$/android/medassist_android.iml" />
     </modules>
   </component>
 </project>

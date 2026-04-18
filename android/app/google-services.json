@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "133462199675",
+    "project_id": "medassist-2ec03",
+    "storage_bucket": "medassist-2ec03.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:133462199675:android:a163fc868362d1d0be81de",
+        "android_client_info": {
+          "package_name": "com.fyp.medassist"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcVDZ12RCas4-_kdHOQdWU1ySQIs3-VgM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
