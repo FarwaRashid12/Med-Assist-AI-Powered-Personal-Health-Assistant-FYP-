@@ -1,6 +1,6 @@
 # medassist
 
-A new Flutter project.
+A new Flutter project. updated 
 
 ## Getting Started
 
